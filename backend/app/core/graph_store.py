@@ -9,6 +9,7 @@ import networkx as nx
 from datetime import datetime
 from typing import Any
 import threading
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class GraphStore:
@@ -222,6 +223,31 @@ class GraphStore:
     def clear(self) -> None:
         """Clear the entire graph (for testing)."""
         self._graph.clear()
+
+    async def load_from_db(self, db: AsyncSession) -> None:
+        """Load historical transactions from database into graph."""
+        from sqlalchemy import select
+        from app.models.transaction import Transaction
+        
+        # Clear existing graph first to avoid duplicates
+        self.clear()
+        
+        result = await db.execute(select(Transaction))
+        transactions = result.scalars().all()
+        
+        for txn in transactions:
+            self.add_transaction(
+                tx_id=txn.tx_id,
+                account_hash=txn.account_hash,
+                merchant_hash=txn.merchant_hash,
+                device_hash=txn.device_hash,
+                amount=txn.amount,
+                currency=txn.currency,
+                channel=txn.channel,
+                merchant_category=txn.merchant_category,
+                timestamp=txn.timestamp,
+            )
+        print(f"✓ Graph reconstructed: {len(transactions)} transactions loaded")
 
 
 # Singleton accessor

@@ -14,6 +14,27 @@ from app.services.graph_service import GraphService
 router = APIRouter(prefix="/graph", tags=["graph"])
 
 
+@router.get("")
+async def get_full_graph():
+    """Get the full graph in GraphData format for the frontend explorer."""
+    service = GraphService()
+    nodes = []
+    edges = []
+    for node, data in service.graph.graph.nodes(data=True):
+        nodes.append({
+            "id": node, 
+            "label": data.get("label", node), 
+            "type": data.get("node_type")
+        })
+    for u, v, data in service.graph.graph.edges(data=True):
+        edges.append({
+            "source": u, 
+            "target": v, 
+            "type": data.get("edge_type"), 
+            "amount": data.get("amount")
+        })
+    return {"nodes": nodes, "edges": edges}
+
 @router.get("/summary")
 async def graph_summary():
     """Get overall graph statistics."""

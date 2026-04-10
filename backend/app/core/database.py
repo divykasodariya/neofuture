@@ -36,3 +36,6 @@ async def get_db() -> AsyncSession:
             yield session
         finally:
             await session.close()
+
+# Import models to ensure they are registered with Base.metadata
+from app.models import alert, transaction

@@ -18,8 +18,16 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     # Startup: initialize database tables
     await init_db()
+    
+    # Load historical graph state
+    from app.core.database import async_session
+    from app.core.graph_store import get_graph_store
+    async with async_session() as db:
+        graph = get_graph_store()
+        await graph.load_from_db(db)
+        
     print("✓ Database initialized")
-    print("✓ Graph store ready")
+    print("✓ Graph store ready (Historical data loaded)")
     print("✓ zkTransact backend running")
     yield
     # Shutdown: cleanup
@@ -71,3 +79,4 @@ async def health():
         "graph_nodes": sum(graph.node_count().values()),
         "graph_edges": graph.edge_count(),
     }
+

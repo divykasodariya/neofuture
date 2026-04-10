@@ -8,9 +8,11 @@ nodes + edges into the in-memory graph.
 import uuid
 from datetime import datetime, timezone
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.utils.hashing import hash_account, hash_merchant, hash_device
 from app.core.graph_store import get_graph_store
 from app.schemas.transaction import TransactionIn, TransactionOut
+from app.models.transaction import Transaction
 
 
 class IngestionService:
@@ -19,7 +21,7 @@ class IngestionService:
     def __init__(self):
         self.graph = get_graph_store()
 
-    def ingest(self, txn: TransactionIn) -> TransactionOut:
+    async def ingest(self, db: AsyncSession, txn: TransactionIn) -> TransactionOut:
         """
         Process a single transaction:
         1. Hash all PII fields
@@ -51,6 +53,21 @@ class IngestionService:
             timestamp=timestamp,
         )
 
+        # Step 5: Save to database
+        db_txn = Transaction(
+            tx_id=tx_id,
+            account_hash=account_hash,
+            merchant_hash=merchant_hash,
+            device_hash=device_hash,
+            amount=txn.amount,
+            currency=txn.currency,
+            channel=txn.channel,
+            merchant_category=txn.merchant_category,
+            timestamp=timestamp,
+        )
+        db.add(db_txn)
+        await db.commit()
+
         return TransactionOut(
             tx_id=tx_id,
             account_hash=account_hash,
@@ -63,6 +80,9 @@ class IngestionService:
             timestamp=timestamp,
         )
 
-    def ingest_batch(self, transactions: list[TransactionIn]) -> list[TransactionOut]:
+    async def ingest_batch(self, db: AsyncSession, transactions: list[TransactionIn]) -> list[TransactionOut]:
         """Process a batch of transactions."""
-        return [self.ingest(txn) for txn in transactions]
+        results = []
+        for txn in transactions:
+            results.append(await self.ingest(db, txn))
+        return results

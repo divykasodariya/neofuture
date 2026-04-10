@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     pii_hash_salt: str = "zktransact-default-salt-change-me"
 
     # CORS
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:5174,http://localhost:3000"
 
     # Server
     host: str = "0.0.0.0"

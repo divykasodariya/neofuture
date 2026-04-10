@@ -224,7 +224,8 @@ async def seed():
 
     async with async_session() as db:
         for i, txn in enumerate(all_txns):
-            result = ingestion.ingest(txn)
+            # Ingest saves to both graph and database now
+            result = await ingestion.ingest(db, txn)
             alerts = await fraud.run_all_rules(db, result.account_hash, result.device_hash)
             total_alerts += len(alerts)
 
